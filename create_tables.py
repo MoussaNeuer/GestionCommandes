@@ -1,9 +1,3 @@
-"""
-Script de création des tables MySQL.
-À exécuter une seule fois avant de lancer l'application.
-Utilise la classe DatabaseConnection (Singleton).
-"""
-
 from database.connexion import DatabaseConnection
 
 # Ordre important : fournisseur et produit avant commande,
@@ -86,32 +80,31 @@ TABLES = [
 ]
 
 def creer_tables():
-    """Crée toutes les tables dans la base de données MySQL."""
+    #Crée toutes les tables dans la base de données MySQL
     db = DatabaseConnection()
 
     # Connexion à la base de données
     if not db.connect():
-        print("❌ Impossible de se connecter. Vérifiez database/config.py")
+        print("Impossible de se connecter. Vérifiez database/config.py")
         return
 
     try:
         for nom_table, sql in TABLES:
             ok = db.execute(sql)
             if ok:
-                print(f"   ✅ Table '{nom_table}' créée (ou déjà existante).")
+                print(f"Table '{nom_table}' créée (ou déjà existante).")
             else:
-                print(f"   ❌ Erreur lors de la création de la table '{nom_table}'.")
+                print(f"Erreur lors de la création de la table '{nom_table}'.")
 
         db.commit()
-        print("\n✅ Création des tables terminée avec succès !")
+        print("\nCréation des tables terminée avec succès !")
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Erreur inattendue : {e}")
+        print(f"Erreur inattendue : {e}")
 
     finally:
         db.disconnect()
-
 
 if __name__ == "__main__":
     print("=" * 60)

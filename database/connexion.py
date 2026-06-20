@@ -1,9 +1,11 @@
 import mysql.connector
-from database.config import TYPE_BD, MYSQL
+from database.config import MYSQL
+
 
 class DatabaseConnection:
-    # singleton pour la cconnexion à la base de données
+    # Singleton : une seule instance de connexion
     _instance = None
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -12,60 +14,51 @@ class DatabaseConnection:
         return cls._instance
 
     def connect(self):
-        # connexion à la base de données
+        """Établir la connexion à la base de données MySQL"""
         try:
-            if TYPE_BD == "mysql":
-                self.connection = mysql.connector.connect(
-                    host=MYSQL["host"],
-                    port=MYSQL["port"],
-                    user=MYSQL["user"],
-                    password=MYSQL["password"],
-                    database=MYSQL["database"]
-                )
-                self.cursor = self.connection.cursor()
-                print("Connexion à la base de données MySQL réussie.")
-                return True
-            else:
-                print(f"Type de base de données '{TYPE_BD}' non supporté.")
-                return False
+            self.connection = mysql.connector.connect(
+                host=MYSQL["host"],
+                port=MYSQL["port"],
+                database=MYSQL["database"],
+                user=MYSQL["user"],
+                password=MYSQL["password"]
+            )
+            self.cursor = self.connection.cursor()
+            return True
         except Exception as e:
-            print(f"Erreur de connexion à la base de données: {e}")
-            return False  
+            print(f"Erreur de connexion : {e}")
+            return False
 
     def disconnect(self):
-        # déconnexion de la base de données
-        if self.connection:
+        """Fermer la connexion"""
+        if self.cursor:
             self.cursor.close()
+        if self.connection:
             self.connection.close()
-            print("Déconnexion de la base de données réussie.")
 
     def commit(self):
-        # valider les changements dans la base de données
+        """Valider la transaction"""
         if self.connection:
             self.connection.commit()
 
     def rollback(self):
-        # annuler les changements dans la base de données
+        """Annuler la transaction"""
         if self.connection:
             self.connection.rollback()
 
     def execute(self, query, params=None):
-        # exécuter une requête SQL
-            try:
-                self.cursor.execute(query, params)
-                return True
-            except Exception as e:
-                print(f"Erreur lors de l'exécution de la requête: {e}")
-                return False
+        """Exécuter une requête SQL paramétrée"""
+        try:
+            self.cursor.execute(query, params or ())
+            return True
+        except Exception as e:
+            print(f"Erreur SQL : {e}")
+            return False
 
     def fetchall(self):
-        # récupérer tous les résultats d'une requête
-        if self.cursor:
-            return self.cursor.fetchall()
-        return None
+        """Récupérer tous les résultats"""
+        return self.cursor.fetchall()
 
     def fetchone(self):
-        # récupérer un seul résultat d'une requête
-        if self.cursor:
-            return self.cursor.fetchone() 
-        return None       
+        """Récupérer un seul résultat"""
+        return self.cursor.fetchone()
