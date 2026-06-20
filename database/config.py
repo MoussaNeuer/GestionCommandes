@@ -1,5 +1,3 @@
-TYPE_BD = "mysql" 
-
 MYSQL = {
     "host": "localhost",
     "port": 3306,
