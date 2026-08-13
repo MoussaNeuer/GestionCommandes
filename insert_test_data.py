@@ -5,11 +5,11 @@ Script d'insertion de données de test pour MySQL/WAMP.
 from database.connexion import DatabaseConnection
 
 FOURNISSEURS = [
-    ("F001", "Technologie Dakar SARL",   "contact@techdk.sn",    "77 100 00 01", "Zone Industrielle, Dakar"),
-    ("F002", "Informatique Express SN",  "info@infoexpress.sn",  "76 200 00 02", "Plateau, Dakar"),
-    ("F003", "Global IT Sénégal",        "sales@globalit.sn",    "70 300 00 03", "Almadies, Dakar"),
-    ("F004", "Bureau Plus Distribution", "bureau@bplus.sn",      "78 400 00 04", "Parcelles Assainies, Dakar"),
-    ("F005", "Matériel Pro Afrique",     "mpro@mproa.sn",        "77 500 00 05", "Yoff, Dakar"),
+    ("F001", "Technologie Dakar SARL",   "contact@techdk.sn",    "77 143 98 21", "Zone Industrielle, Dakar"),
+    ("F002", "Informatique Express SN",  "info@infoexpress.sn",  "76 220 36 92", "Plateau, Dakar"),
+    ("F003", "Global IT Sénégal",        "sales@globalit.sn",    "70 360 10 73", "Almadies, Dakar"),
+    ("F004", "Bureau Plus Distribution", "bureau@bplus.sn",      "78 470 89 24", "Parcelles Assainies, Dakar"),
+    ("F005", "Matériel Pro Afrique",     "mpro@mproa.sn",        "71 561 77 65", "Yoff, Dakar"),
 ]
 
 PRODUITS = [
@@ -104,8 +104,7 @@ def inserer_donnees_test():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  INSERTION DES DONNÉES DE TEST - MySQL / WAMP")
+    print("  INSERTION DES DONNÉES DE TEST - MySQL")
     print("=" * 60)
     inserer_donnees_test()
-    print("\n  Lancez l'application avec : python main.py")
     print("=" * 60)

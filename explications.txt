@@ -1,0 +1,445 @@
+===================================================================
+GUIDE D'EXPLICATION ORALE - GESTION DES COMMANDES FOURNISSEURS
+Projet L2 IAGE - POO & Base de données
+===================================================================
+
+
+1. PRESENTATION GENERALE DU PROJET
+===================================================================
+
+But du projet :
+Une entreprise sénégalaise de distribution de matériel informatique
+veut informatiser la gestion de ses achats fournisseurs. Avant tout
+était géré sur papier (erreurs, retards, pas de visibilité).
+
+Notre application permet de gérer :
+- Les fournisseurs (qui nous vend du matériel)
+- Les produits (le matériel qu'on achète)
+- Les commandes (ce qu'on commande à un fournisseur, avec plusieurs
+  produits dedans)
+
+Technologies utilisées :
+- Python (Programmation Orientée Objet)
+- MySQL (base de données)
+- Application en mode console (pas d'interface graphique, pas de
+  Flask, pas de framework web)
+
+
+2. POURQUOI 4 TABLES ET PAS 3 ?
+===================================================================
+
+Le sujet demandait 3 tables obligatoires + 1 table optionnelle mais
+conseillée. On a fait les 4 :
+
+- fournisseur  : les entreprises qui nous fournissent du matériel
+- produit      : le matériel qu'on peut commander
+- commande     : une commande passée à UN fournisseur
+- ligne_commande : le détail d'une commande (quels produits, en
+  quelle quantité). Une commande peut avoir plusieurs lignes.
+
+Pourquoi une table à part pour les lignes ?
+Parce qu'une commande contient PLUSIEURS produits. Si on mettait
+les produits directement dans la table commande, on ne pourrait
+stocker qu'un seul produit par commande. La table ligne_commande
+fait le lien entre commande et produit (table d'association).
+
+Relation entre les tables (à dessiner au tableau si besoin) :
+
+  fournisseur (1) ----- (plusieurs) commande
+  commande (1) ----- (plusieurs) ligne_commande
+  produit (1) ----- (plusieurs) ligne_commande
+
+Exemple concret : Le fournisseur "Tech Supply" reçoit la commande
+CMD002. Cette commande contient 3 écrans Samsung et 10 disques
+durs. Chaque produit commandé = une ligne dans ligne_commande.
+
+
+3. ARCHITECTURE DU CODE (LES DOSSIERS)
+===================================================================
+
+gestion_commandes/
+│
+├── database/        -> tout ce qui concerne la connexion à MySQL
+│   ├── config.py       (les identifiants : host, user, password...)
+│   └── connexion.py    (la classe qui ouvre/ferme la connexion)
+│
+├── models/          -> les "moules" pour représenter nos objets
+│   ├── fournisseur.py  (classe Fournisseur)
+│   ├── produit.py      (classe Produit)
+│   └── commande.py     (classes Commande et LigneCommande)
+│
+├── daos/            -> tout le code qui parle à la base de données
+│   ├── fournisseur_dao.py  (ajouter/lister/modifier/supprimer un
+│                             fournisseur en SQL)
+│   ├── produit_dao.py      (pareil pour les produits)
+│   └── commande_dao.py     (pareil pour les commandes + les lignes)
+│
+├── menu/
+│   └── interface.py     -> tout ce que l'utilisateur voit et tape
+│                            au clavier (les menus)
+│
+├── create_tables.py     -> script qu'on lance UNE FOIS pour créer
+│                            les 4 tables dans MySQL
+├── insert_test_data.py  -> script qui remplit la base avec des
+│                            données d'exemple pour tester
+└── main.py               -> le fichier qu'on lance pour démarrer
+                              l'application
+
+Pourquoi cette séparation en 3 couches (models / daos / menu) ?
+C'est le principe de séparation des responsabilités :
+
+- models  = QUOI (la structure des données : un fournisseur a un
+  code, un nom, un email...)
+- daos    = COMMENT on parle à la base (les requêtes SQL)
+- menu    = COMMENT l'utilisateur interagit (les questions posées,
+  l'affichage)
+
+Avantage : si demain on change MySQL pour PostgreSQL, on ne
+modifie que les DAO, pas les menus. Si on change l'affichage, on
+ne touche pas à la base de données.
+
+
+4. LE PATTERN SINGLETON (database/connexion.py)
+===================================================================
+
+C'est une CONTRAINTE OBLIGATOIRE du sujet.
+
+Qu'est-ce qu'un Singleton ?
+C'est un pattern de conception qui garantit qu'une classe n'aura
+JAMAIS qu'une seule instance (un seul objet créé), même si on
+l'appelle plusieurs fois dans le code.
+
+Pourquoi l'utiliser pour la connexion à la base de données ?
+Pour éviter d'ouvrir plein de connexions différentes à MySQL en
+même temps, ce qui gaspillerait des ressources et pourrait créer
+des bugs (deux connexions qui ne voient pas les mêmes données en
+même temps, par exemple).
+
+Comment ça marche dans le code (la méthode magique __new__) :
+
+    class DatabaseConnection:
+        _instance = None          <- variable de classe, partagée
+
+        def __new__(cls):
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
+
+Explication simple à dire à l'oral :
+"La première fois qu'on appelle DatabaseConnection(), Python crée
+réellement un nouvel objet et le stocke dans _instance. Toutes les
+fois suivantes, comme _instance n'est plus None, on renvoie
+TOUJOURS le même objet déjà créé, au lieu d'en fabriquer un
+nouveau."
+
+Différence avec __init__ :
+__new__ est appelée AVANT __init__, c'est elle qui décide si on
+crée vraiment un nouvel objet ou si on réutilise l'ancien.
+
+
+5. LES REQUETES SQL PARAMETREES
+===================================================================
+
+C'est une CONTRAINTE OBLIGATOIRE du sujet (sécurité).
+
+Mauvaise pratique (à ne JAMAIS faire, à montrer en exemple à
+éviter) :
+
+    sql = f"SELECT * FROM fournisseur WHERE code = '{code}'"
+
+Pourquoi c'est dangereux : si l'utilisateur tape quelque chose de
+malveillant à la place de "code", comme une instruction SQL, ça
+peut casser ou manipuler la base entière. C'est ce qu'on appelle
+une injection SQL.
+
+Bonne pratique (ce qu'on fait dans le projet) :
+
+    sql = "SELECT * FROM fournisseur WHERE code = %s"
+    db.execute(sql, (code,))
+
+Le %s est un EMPLACEMENT RESERVE. MySQL reçoit la requête et la
+valeur séparément, donc même si l'utilisateur tape du code SQL
+dans sa réponse, ça sera traité comme une SIMPLE CHAINE DE
+CARACTERES, jamais exécuté comme une commande.
+
+A dire à l'oral : "Toutes nos requêtes dans les DAO utilisent des
+%s à la place des valeurs, jamais de concaténation directe de
+texte. Ça protège contre les injections SQL."
+
+
+6. COMMIT ET ROLLBACK (LES TRANSACTIONS)
+===================================================================
+
+commit() : valide définitivement les changements dans la base.
+Sans commit, les INSERT/UPDATE/DELETE ne sont pas vraiment
+sauvegardés.
+
+rollback() : annule tout ce qui a été fait depuis le dernier
+commit, en cas d'erreur. Permet de revenir en arrière proprement.
+
+Exemple dans le projet, lors de l'annulation d'une commande
+(menu/interface.py, méthode annuler_commande) :
+On remet le stock à jour pour chaque produit de la commande, PUIS
+on change le statut en ANNULEE, PUIS on fait le commit. Si une
+erreur arrivait au milieu, on pourrait faire un rollback pour ne
+pas se retrouver avec un stock à moitié remis à jour et une
+commande pas encore annulée.
+
+
+7. LES CONTRAINTES FONCTIONNELLES (LA LOGIQUE METIER)
+===================================================================
+
+Toute cette logique est dans menu/interface.py, PAS dans les DAO.
+Les DAO ne font que des requêtes SQL brutes, sans réfléchir. C'est
+le menu qui réfléchit et qui décide.
+
+a) Un fournisseur ne peut pas être supprimé s'il a des commandes
+   Avant de supprimer, on compte le nombre de commandes liées à ce
+   fournisseur (compter_commandes). Si > 0, on refuse.
+
+b) Un produit ne peut pas être supprimé s'il est dans une commande
+   Même logique avec compter_lignes_commande.
+
+c) La quantité commandée ne peut pas dépasser le stock
+   Quand on crée une commande et qu'on ajoute un produit, on
+   vérifie que la quantité demandée <= stock disponible du produit.
+
+d) Le statut ne peut pas reculer (ex: LIVREE -> EN_ATTENTE interdit)
+   On a une liste ordonnée : ["EN_ATTENTE", "VALIDEE", "LIVREE"]
+   On compare la POSITION du nouveau statut avec la position de
+   l'ancien dans cette liste. Si la nouvelle position est inférieure
+   ou égale à l'ancienne, c'est refusé.
+
+   Exemple : EN_ATTENTE est à la position 0, VALIDEE à la position 1.
+   Si on veut passer de VALIDEE (1) à EN_ATTENTE (0), 0 <= 1 donc
+   c'est refusé.
+
+e) Le stock diminue automatiquement quand une commande passe à
+   VALIDEE
+   On parcourt toutes les lignes de la commande, et pour chaque
+   produit, on fait : nouveau_stock = stock_actuel - quantite
+
+f) Quand on annule une commande qui était VALIDEE, le stock est
+   remis à jour (on rajoute la quantité au stock)
+
+g) Le montant total est calculé automatiquement
+   A chaque fois qu'on ajoute un produit dans une commande, on
+   additionne (quantite x prix_unitaire) dans une variable
+   montant_total, et à la fin on enregistre ce total dans la
+   commande.
+
+
+8. LES METHODES CRUD (LE COEUR DU PROJET)
+===================================================================
+
+CRUD = Create, Read, Update, Delete (Créer, Lire, Modifier,
+Supprimer). C'est la base de toute application qui gère des
+données.
+
+Pour chaque entité (fournisseur, produit, commande), on retrouve
+les mêmes méthodes dans le DAO correspondant :
+
+- ajouter_X(objet)        -> CREATE : insère une nouvelle ligne
+- lister_X()               -> READ : récupère toutes les lignes
+- get_by_id(id)             -> READ : récupère UNE ligne précise
+- rechercher_X(mot_cle)     -> READ : recherche par mot-clé
+- modifier_X(objet)         -> UPDATE : met à jour une ligne
+- supprimer_X(id)           -> DELETE : supprime une ligne
+
+Exemple à expliquer en détail (ajouter_fournisseur) :
+
+    def ajouter_fournisseur(self, fournisseur):
+        db = DatabaseConnection()
+        if not db.connect():
+            return False
+        sql = """
+        INSERT INTO fournisseur(code, raison_sociale, email,
+        telephone, adresse) VALUES (%s, %s, %s, %s, %s)
+        """
+        params = (fournisseur.code, fournisseur.raison_sociale,
+                   fournisseur.email, fournisseur.telephone,
+                   fournisseur.adresse)
+        ok = db.execute(sql, params)
+        if ok:
+            db.commit()
+        db.disconnect()
+        return ok
+
+A expliquer : "On récupère l'instance unique de la connexion
+(grâce au Singleton), on se connecte, on prépare la requête SQL
+avec des %s, on l'exécute avec les vraies valeurs, on valide avec
+commit() si ça a marché, puis on ferme la connexion et on retourne
+True ou False selon le résultat."
+
+
+9. LES MODELES (CLASSES PYTHON SIMPLES)
+===================================================================
+
+Chaque modèle est une classe Python toute simple qui représente
+UNE ligne de la base de données sous forme d'objet.
+
+Exemple : models/fournisseur.py
+
+    class Fournisseur:
+        def __init__(self, id=None, code="", raison_sociale="",
+                     email="", telephone="", adresse="",
+                     date_creation=None):
+            self.id = id
+            self.code = code
+            self.raison_sociale = raison_sociale
+            ...
+
+A dire à l'oral : "Chaque attribut de la classe correspond
+exactement à une colonne de la table SQL. Quand on récupère une
+ligne depuis la base, on la transforme en objet Fournisseur grâce
+à ce constructeur. Ça nous permet de manipuler des objets Python
+plutôt que des tuples bruts."
+
+La méthode __str__ : permet d'afficher l'objet directement avec
+print(objet) de façon lisible, sans avoir à écrire plein de print
+à chaque fois.
+
+
+10. LES MENUS (match case)
+===================================================================
+
+On utilise le mot-clé Python "match case" (équivalent du switch
+dans d'autres langages), introduit dans Python 3.10.
+
+    choix = int(input("Faites votre choix : "))
+    match choix:
+        case 1:
+            ... afficher la liste ...
+        case 2:
+            ... ajouter ...
+        case 0:
+            self.menu_principal()
+        case _:
+            print("--- Choix invalide ---")
+
+A dire à l'oral : "On lit le choix de l'utilisateur, et selon le
+numéro tapé, on exécute le bloc correspondant. Le 'case _' est le
+cas par défaut, si l'utilisateur tape un nombre qui ne correspond
+à rien."
+
+Pourquoi des boucles while True ?
+Chaque menu (menu_principal, menu_fournisseur, menu_produit,
+menu_commande, menu_rapport) tourne dans une boucle infinie qui ne
+s'arrête que lorsque l'utilisateur choisit "Retour" ou "Quitter".
+Ça permet de revenir au même menu après chaque action, sans
+redémarrer le programme.
+
+
+11. DEROULEMENT D'UNE COMMANDE COMPLETE (A FAIRE EN DEMO)
+===================================================================
+
+Etape 1 : Créer une commande
+- L'utilisateur choisit "Créer une commande"
+- On demande le numéro (ex: CMD004)
+- On affiche la liste des fournisseurs, on choisit l'ID
+- La commande est créée avec le statut EN_ATTENTE et un montant
+  total de 0 pour l'instant
+
+Etape 2 : Ajouter des produits à la commande
+- On affiche la liste des produits disponibles
+- Pour chaque produit ajouté, on vérifie que la quantité demandée
+  ne dépasse pas le stock
+- On enregistre une ligne dans ligne_commande
+- On additionne au montant_total
+
+Etape 3 : Mettre à jour le montant total
+- Une fois tous les produits ajoutés, on enregistre le montant
+  total final dans la table commande
+
+Etape 4 : Valider la commande
+- Dans le menu "Changer le statut", on passe de EN_ATTENTE à
+  VALIDEE
+- A ce moment-là, le stock des produits commandés est diminué
+
+Etape 5 : Livrer la commande
+- On passe de VALIDEE à LIVREE (le stock ne bouge plus, déjà fait)
+
+Etape 6 (alternative) : Annuler la commande
+- Si la commande était VALIDEE et qu'on l'annule, le stock est
+  remis comme avant
+- Si la commande était déjà LIVREE, impossible de l'annuler
+
+
+12. LES RAPPORTS ET STATISTIQUES
+===================================================================
+
+- Commandes par fournisseur : on filtre les commandes par
+  fournisseur_id
+- Commandes en attente : on filtre par statut = 'EN_ATTENTE'
+- Valeur totale du stock : on additionne (prix_unitaire x stock)
+  pour tous les produits
+- Top 5 produits les plus commandés : on regroupe les lignes de
+  commande par produit, on additionne les quantités, on trie du
+  plus grand au plus petit, on garde les 5 premiers (requête SQL
+  avec GROUP BY, SUM, ORDER BY, LIMIT 5)
+- Chiffre d'affaires total : on additionne le montant_total de
+  toutes les commandes dont le statut est VALIDEE ou LIVREE
+  (une commande EN_ATTENTE ou ANNULEE ne compte pas dans le CA)
+
+
+13. QUESTIONS PROBABLES DU JURY ET REPONSES
+===================================================================
+
+Q : Pourquoi un Singleton et pas une connexion classique ?
+R : Pour éviter de créer plusieurs connexions inutiles à la base,
+et garantir qu'on utilise toujours la même instance partout dans
+l'application.
+
+Q : Qu'est-ce qu'une injection SQL et comment vous en protégez-
+vous ?
+R : C'est une faille où un utilisateur peut injecter du code SQL
+malveillant dans un champ de saisie. On s'en protège en utilisant
+des requêtes paramétrées avec %s au lieu de construire les
+requêtes avec des f-strings ou de la concaténation.
+
+Q : Pourquoi avoir séparé models, daos et menu ?
+R : Pour séparer les responsabilités : les models décrivent les
+données, les daos parlent à la base de données, et le menu gère
+l'interaction avec l'utilisateur. Ça rend le code plus lisible et
+plus facile à maintenir.
+
+Q : Que se passe-t-il si on essaie de supprimer un fournisseur qui
+a des commandes ?
+R : On vérifie d'abord avec compter_commandes() s'il a des
+commandes liées. Si oui, on refuse la suppression et on affiche un
+message d'erreur.
+
+Q : Comment gérez-vous le stock lors d'une commande ?
+R : Le stock n'est diminué que lorsque la commande passe au statut
+VALIDEE, pas à la création de la commande. Si la commande est
+annulée après avoir été validée, le stock est remis à jour.
+
+Q : Pourquoi une table ligne_commande séparée et pas directement
+dans commande ?
+R : Parce qu'une commande peut contenir plusieurs produits
+différents. La table ligne_commande permet de stocker autant de
+lignes que nécessaire pour une seule commande (relation un-à-
+plusieurs).
+
+Q : Quelles difficultés avez-vous rencontrées ?
+(Réponse personnelle à préparer par le groupe : exemples possibles
+ - comprendre le pattern Singleton, gérer le calcul automatique du
+ montant total, gérer les statuts qui ne doivent pas reculer, etc.)
+
+
+14. CE QUE CHAQUE MEMBRE PEUT DIRE AVOIR APPRIS (A ADAPTER)
+===================================================================
+
+- Manipulation d'une base de données relationnelle avec des clés
+  étrangères
+- Programmation orientée objet en Python (classes, constructeurs)
+- Le pattern de conception Singleton
+- La sécurisation des requêtes SQL (requêtes paramétrées)
+- La gestion des transactions (commit/rollback)
+- L'organisation d'un projet en couches (models / daos / menu)
+- Le travail en équipe avec Git/GitHub (commits réguliers)
+
+
+===================================================================
+FIN DU GUIDE
+===================================================================

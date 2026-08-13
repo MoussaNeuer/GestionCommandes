@@ -53,7 +53,7 @@ class DatabaseConnection:
             return True
         except Exception as e:
             print(f"Erreur SQL : {e}")
-            return False
+            raise
 
     def fetchall(self):
         """Récupérer tous les résultats"""

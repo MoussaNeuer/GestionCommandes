@@ -16,7 +16,7 @@ class Menu:
         self.ligne_dao = LigneCommandeDAO()
 
     def cls(self):
-        os.system("clear")
+        os.system("cls" if os.name == "nt" else "clear")
 
     def pause(self):
         input("Tapez entrer pour continuer ...")
