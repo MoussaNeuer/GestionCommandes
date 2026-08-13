@@ -102,3 +102,9 @@ gestion_commandes/
 - **Produits** : Ajouter, lister, rechercher, modifier, supprimer, alerte stock
 - **Commandes** : Créer, lister, détail, changer statut, annuler, supprimer
 - **Rapports** : Commandes par fournisseur, commandes en attente, valeur du stock, top 5 produits, chiffre d'affaires
+
+## Membres du Groupe
+- **Moussa LO
+- **Djiby NDIAYE
+- **Hadya DIAGANA
+- **Maty GNINGUE
