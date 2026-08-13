@@ -120,7 +120,7 @@ class Menu:
                         print("Fournisseur non trouvé")
                     self.pause()
                 case 0:
-                    self.menu_principal()
+                    return
                 case _:
                     print("--- Choix invalide ---")
 
@@ -203,7 +203,7 @@ class Menu:
                             print(p)
                     self.pause()
                 case 0:
-                    self.menu_principal()
+                    return
                 case _:
                     print("--- Choix invalide ---")
 
@@ -258,7 +258,7 @@ class Menu:
                     print("Commande supprimée avec success")
                     self.pause()
                 case 0:
-                    self.menu_principal()
+                    return
                 case _:
                     print("--- Choix invalide ---")
 
@@ -438,6 +438,6 @@ class Menu:
                     print(f"Chiffre d'affaires total : {ca} FCFA")
                     self.pause()
                 case 0:
-                    self.menu_principal()
+                    return
                 case _:
                     print("--- Choix invalide ---")
