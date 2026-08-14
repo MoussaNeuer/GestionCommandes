@@ -61,7 +61,7 @@ def inserer_donnees_test():
                 (code, rs, email, tel, adresse)
             )
             fournisseur_ids.append(curseur.lastrowid)
-        print(f"     ✅ {len(FOURNISSEURS)} fournisseurs insérés.")
+        print(f"      {len(FOURNISSEURS)} fournisseurs insérés.")
 
         print("\n  2. Insertion des produits...")
         produit_ids = []
@@ -72,7 +72,7 @@ def inserer_donnees_test():
                 (ref, desg, prix, stock)
             )
             produit_ids.append(curseur.lastrowid)
-        print(f"     ✅ {len(PRODUITS)} produits insérés.")
+        print(f"      {len(PRODUITS)} produits insérés.")
 
         print("\n  3. Insertion des commandes et lignes...")
         for numero, f_idx, statut, lignes in COMMANDES:
@@ -89,14 +89,14 @@ def inserer_donnees_test():
                     "VALUES (%s, %s, %s, %s)",
                     (commande_id, produit_ids[p_idx], qte, PRODUITS[p_idx][2])
                 )
-        print(f"     ✅ {len(COMMANDES)} commandes insérées avec leurs lignes.")
+        print(f"      {len(COMMANDES)} commandes insérées avec leurs lignes.")
 
         connexion.commit()
-        print("\n  ✅ Données de test insérées avec succès !")
+        print("\n   Données de test insérées avec succès !")
 
     except Exception as e:
         connexion.rollback()
-        print(f"\n  ❌ Erreur : {e}")
+        print(f"\n   Erreur : {e}")
         raise
     finally:
         db.disconnect()
@@ -106,5 +106,5 @@ if __name__ == "__main__":
     print("=" * 60)
     print("  INSERTION DES DONNÉES DE TEST - MySQL")
     print("=" * 60)
-    inserer_donnees_test()
+inserer_donnees_test()
     print("=" * 60)
