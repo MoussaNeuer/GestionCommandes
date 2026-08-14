@@ -37,33 +37,6 @@ pip install -r requirements.txt
 ```sql
 CREATE DATABASE gestion_commandes_iage CHARACTER SET utf8mb4;
 ```
-
-4. Configurer la connexion dans `database/config.py` :
-```python
-MYSQL = {
-    "host": "localhost",
-    "port": "3306",
-    "database": "gestion_commandes_iage",
-    "user": "root",
-    "password": "votre_mot_de_passe"
-}
-```
-
-5. Créer les tables :
-```
-python create_tables.py
-```
-
-6. Insérer les données de test (optionnel) :
-```
-python insert_test_data.py
-```
-
-7. Lancer l'application :
-```
-python main.py
-```
-
 ---
 
 ## Structure du projet
